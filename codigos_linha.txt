@@ -1,0 +1,136 @@
+-- Tabela de departamentos
+CREATE TABLE Departamento (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(100),
+    cidade VARCHAR(100)
+);
+
+-- Tabela de empregados vinculados a departamentos
+CREATE TABLE Empregado (
+    id INT PRIMARY KEY AUTO_INCREMENT,
+    nome VARCHAR(100),
+    departamento_id INT,
+    FOREIGN KEY (departamento_id) REFERENCES Departamento(id)
+);
+
+-- Índice para acelerar JOINs e agrupamentos
+CREATE INDEX idx_departamento_id ON Empregado(departamento_id);
+
+-- Inserindo dados genéricos
+INSERT INTO Departamento (nome, cidade) VALUES
+('TI', 'Cidade A'),
+('RH', 'Cidade B'),
+('Financeiro', 'Cidade A'),
+('Marketing', 'Cidade C');
+
+INSERT INTO Empregado (nome, departamento_id) VALUES
+('Empregado 1', 1),
+('Empregado 2', 1),
+('Empregado 3', 2),
+('Empregado 4', 3),
+('Empregado 5', 1),
+('Empregado 6', 4),
+('Empregado 7', 3);
+
+-- 🔍 1. Departamento com maior número de pessoas
+SELECT d.nome, COUNT(e.id) AS total
+FROM Departamento d
+JOIN Empregado e ON e.departamento_id = d.id
+GROUP BY d.id
+ORDER BY total DESC
+LIMIT 1;
+
+-- 🔍 2. Departamentos por cidade
+SELECT cidade, GROUP_CONCAT(nome SEPARATOR ', ') AS departamentos
+FROM Departamento
+GROUP BY cidade;
+
+-- 🔍 3. Relação de empregados por departamento
+SELECT d.nome AS departamento, e.nome AS empregado
+FROM Departamento d
+JOIN Empregado e ON e.departamento_id = d.id
+ORDER BY d.nome;
+
+-- 🛠️ Procedure para inserir empregado
+DELIMITER //
+CREATE PROCEDURE sp_inserir_empregado (
+    IN nome_emp VARCHAR(100),
+    IN depto_id INT
+)
+BEGIN
+    INSERT INTO Empregado (nome, departamento_id)
+    VALUES (nome_emp, depto_id);
+END;
+//
+DELIMITER ;
+
+-- 🛠️ Procedure para atualizar cidade de um departamento
+DELIMITER //
+CREATE PROCEDURE sp_atualizar_cidade (
+    IN depto_id INT,
+    IN nova_cidade VARCHAR(100)
+)
+BEGIN
+    UPDATE Departamento
+    SET cidade = nova_cidade
+    WHERE id = depto_id;
+END;
+//
+DELIMITER ;
+
+-- 🔧 Testando as procedures
+CALL sp_inserir_empregado('Empregado 8', 2);
+CALL sp_atualizar_cidade(3, 'Cidade Z');
+
+-- Verificando alterações
+SELECT * FROM Empregado;
+SELECT * FROM Departamento;
+
+
+
+-- Resultado abaixo
+Output:
+
++------+-------+
+| nome | total |
++------+-------+
+| TI   |     3 |
++------+-------+
++----------+----------------+
+| cidade   | departamentos  |
++----------+----------------+
+| Cidade A | TI, Financeiro |
+| Cidade B | RH             |
+| Cidade C | Marketing      |
++----------+----------------+
++--------------+-------------+
+| departamento | empregado   |
++--------------+-------------+
+| Financeiro   | Empregado 4 |
+| Financeiro   | Empregado 7 |
+| Marketing    | Empregado 6 |
+| RH           | Empregado 3 |
+| TI           | Empregado 1 |
+| TI           | Empregado 2 |
+| TI           | Empregado 5 |
++--------------+-------------+
++----+-------------+-----------------+
+| id | nome        | departamento_id |
++----+-------------+-----------------+
+|  1 | Empregado 1 |               1 |
+|  2 | Empregado 2 |               1 |
+|  3 | Empregado 3 |               2 |
+|  4 | Empregado 4 |               3 |
+|  5 | Empregado 5 |               1 |
+|  6 | Empregado 6 |               4 |
+|  7 | Empregado 7 |               3 |
+|  8 | Empregado 8 |               2 |
++----+-------------+-----------------+
++----+------------+----------+
+| id | nome       | cidade   |
++----+------------+----------+
+|  1 | TI         | Cidade A |
+|  2 | RH         | Cidade B |
+|  3 | Financeiro | Cidade Z |
+|  4 | Marketing  | Cidade C |
++----+------------+----------+
